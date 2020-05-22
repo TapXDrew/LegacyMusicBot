@@ -1,0 +1,14 @@
+{
+    "Bot": {
+        "Token": "",
+        "Prefix": "!",
+        "StatusTimer": 120,
+        "ServerLink": "",
+        "BotLink": ""
+    },
+    "Embeds Colors": {
+        "Fail Embed": "0xFF2D00",
+        "Success Embed": "0x34A200",
+        "Vote Embed": "0xED9E00"
+    }
+}

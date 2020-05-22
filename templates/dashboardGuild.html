@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+{% extends "navbar.html" %}
+<html>
+    {% block nav %}
+        {% if logged_in %}
+            <span class="navitem1" onclick="clicked()"><a href="/">{{ userData.full }}</a></span>
+        {% else %}
+            <span class="navitem1" onclick="clicked()"><a href="/oauth2_login">Login</a></span>
+        {% endif %}
+    {% endblock nav %}
+    {% block content %}
+    <div class="controlmanagement">
+            <ul class="list">
+                <li class="listitem"><a href="">Music</a></li>
+                <li class="listitem"><a href="">Moderation</a></li>
+                <li class="listitem"><a href="">Levels</a></li>
+                <li class="listitem"><a href="">Automation</a></li>
+                <li class="listitem"><a href="">Server Info</a></li>
+            </ul>
+        </div>
+        <a class="huhi" href="">
+            <div class="moderationcolumn">
+                <p class="moderationtext">PLAYLISTS</p>
+                <img class="moderationimg" src="styles/Screenshot 2020-05-12 at 10.45.50.png">
+                </div>
+        </a>
+        <a class="huhi" href="">
+            <div class="moderationcolumn">
+                <p class="moderationtext">EXPLORE</p>
+                <img class="moderationimg" src="styles/Screenshot 2020-05-12 at 10.45.50.png">
+                </div>
+        </a>
+        <a class="huhi" href="">
+            <div class="moderationcolumn">
+                <p class="moderationtext" id="">MUSIC CONTROLS</p>
+                <img class="moderationimg" src="styles/Screenshot 2020-05-12 at 10.45.50.png">
+                </div>
+        </a>
+    {% endblock content %}
+</html>
