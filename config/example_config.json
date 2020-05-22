@@ -1,12 +1,10 @@
 {
     "Bot": {
         "Token": "",
-        "Prefix": "",
-        "Invite": ""
-    },
-    "Settings": {
-        "PermissionSystem": 1,
-        "AutoPlaylist": 1
+        "Prefix": "!",
+        "StatusTimer": 120,
+        "ServerLink": "",
+        "BotLink": ""
     },
     "Embeds Colors": {
         "Fail Embed": "0xFF2D00",

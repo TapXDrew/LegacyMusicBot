@@ -1,7 +1,7 @@
 import os
 import sqlite3
 
-DATABASE = os.getcwd()+'/databases/moderation.db'
+DATABASE = os.getcwd()+'/databases/userInfo.py.db'
 TABLE = 'ServerModeration'
 
 

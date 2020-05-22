@@ -2,7 +2,7 @@ import os
 import sqlite3
 import json
 
-DATABASE = os.getcwd()+'/databases/permissions.db'
+DATABASE = os.getcwd()+'/databases/userInfo.db'
 TABLE = 'UserPermissions'
 perms = json.load(open(os.getcwd()+"/utils/permissions.json"))
 
