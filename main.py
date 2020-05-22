@@ -6,6 +6,9 @@ from flask import Flask, session, redirect, request, url_for, render_template
 from requests_oauthlib import OAuth2Session
 
 from bot.main import LegacyMusic
+from path import Path
+
+templates_in = os.getcwd()
 
 
 class UserData:
@@ -98,6 +101,7 @@ def make_session(token=None, state=None, scope=None):
 
 @app.route('/')
 def home():
+    Path(templates_in).cd()
     if 'oauth2_token' in session:
         discord = make_session(token=session.get('oauth2_token'))
         user = discord.get(API_BASE_URL + '/users/@me').json()
@@ -112,6 +116,7 @@ def home():
 
 @app.route('/donate/', methods=['POST'])
 def donate():
+    Path(templates_in).cd()
     """
     This webhook catches all incoming POST requests, this will be reserved for donations. If the key is compromised then donations can be faked
     An example response would be:
@@ -129,6 +134,7 @@ def donate():
 
 @app.route('/dashboard')
 def dashboard():
+    Path(templates_in).cd()
     if 'oauth2_token' not in session or userData.full == "None#None":
         return redirect(url_for(".oauth2_login"))
 
@@ -148,11 +154,13 @@ def dashboard():
 
 @app.route('/dashboard/<guild_id>')
 def dashboard_view(guild_id: str = None):
+    Path(templates_in).cd()
     return redirect(url_for(".dashboard")+'/'+guild_id+"/music")
 
 
 @app.route('/dashboard/<guild_id>/music')
 def dashboard_music_view(guild_id: str = None):
+    Path(templates_in).cd()
     gid = None
     for data in userData.guilds:
         if data["id"] == guild_id:
@@ -167,6 +175,7 @@ def dashboard_music_view(guild_id: str = None):
 
 @app.route('/our-team')
 def team():
+    Path(templates_in).cd()
     return render_template('our-team.html',
                            logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False,
                            userData=userData)
@@ -185,6 +194,7 @@ def oauth2_login():
 
 @app.route('/login')
 def login():
+    Path(templates_in).cd()
     try:
         if request.values.get('error'):
             return redirect(url_for(".oauth2_login"))
@@ -203,7 +213,6 @@ def login():
 
 if __name__ == "__main__":
     website = threading.Thread(target=runApp)
-    bot = threading.Thread(target=legacy.run)
 
     website.start()
-    bot.start()
+    legacy.run()

@@ -17,9 +17,6 @@ from bot.utils.servers import Server
 from bot.utils.user import User
 
 
-Path(os.getcwd()+'/bot/audio_cache').cd()
-
-
 regex = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
     r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
@@ -175,6 +172,8 @@ class Music(commands.Cog):
         Initializes the bot to be used for music
         :param bot: discord.Bot
         """
+        Path(os.getcwd() + '/bot/audio_cache').cd()
+
         self.user = None  # This lets us check music permissions for a given user
         self.server = None  # Info on a given server
 
@@ -190,6 +189,8 @@ class Music(commands.Cog):
         self.VoteEmbed = int(self.config["Embeds Colors"]["Vote Embed"], 16)
 
     def cog_check(self, ctx):
+        Path(self.bot.home_dir + '/bot/audio_cache').cd()
+
         self.config = json.load(open(self.bot.home_dir + '/bot/config/config.json'))  # Updates the config file to make sure we have the most relevant information
         self.user = User(bot=self.bot, ctx=ctx)
         self.server = Server(bot=self.bot, guild=ctx.guild)
