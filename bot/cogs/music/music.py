@@ -141,7 +141,7 @@ class AudioSourcePlayer(discord.PCMVolumeTransformer):  # This is our video down
     @classmethod
     async def download(cls, url, *, loop=None, stream=False, ctx):
         youtube_dl.utils.bug_reports_message = lambda: ''
-        ffmpeg_options = {'options': '-vn'}
+        ffmpeg_options = {'options': '-vn', 'Cache-Control': 'no-cache'}
         # before_options = "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
         ytdl_format_options = {'format': 'bestaudio/best', 'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
                                'restrictfilenames': True, 'noplaylist': True, 'nocheckcertificate': True,
@@ -189,6 +189,10 @@ class Music(commands.Cog):
         self.VoteEmbed = int(self.config["Embeds Colors"]["Vote Embed"], 16)
 
     def cog_check(self, ctx):
+        """
+        This is called before each command is used; this lets us re-set the config file for any updates, update the current user/server, and lets us lock the bot to only work in whitelisted channels
+        :param ctx: Information on the context of where the command was called
+        """
         Path(self.bot.home_dir + '/bot/audio_cache').cd()
 
         self.config = json.load(open(self.bot.home_dir + '/bot/config/config.json'))  # Updates the config file to make sure we have the most relevant information
@@ -300,7 +304,12 @@ class Music(commands.Cog):
             continue
 
     async def start_vote(self, vote_type, ctx):
-        if 'all' in self.user.perms or not self.server.ps:
+        """
+        This is for the voting system, this keeps track of all votes
+        :param vote_type: This is the type of vote being started, suck as a skip, repeat, shuffle, ect
+        :param ctx: Information on the context of where the command was called
+        """
+        if 'all' in self.user.perms or not self.server.ps:  # If the permission system is disabled or the user has 'all' permission, we pass the vote
             return True
         player = self.players[ctx.guild.id]
         reactions = {}
@@ -444,48 +453,54 @@ class Music(commands.Cog):
             if not ctx.message.guild.voice_client.is_playing():
                 return await self.play_next_song(ctx, queue_type="Internal")  # Starts to play queued songs
         else:
+            found_video = False
+            await ctx.send(f"Searching for **{song}**...")
             async with ctx.typing():
-                try:
-                    if re.match(regex, song):
-                        player = await AudioSourcePlayer.download(song, loop=self.bot.loop, ctx=ctx, stream=False)
-                        queue.put(player)
-                        found_video = True
-                    else:
-                        await ctx.send("Fetching Results...")
-                        players = []
-                        for index, searching in enumerate(self.get_songs(song)):
-                            if index % 2 != 0:
-                                continue
-                            try:
-                                player = await AudioSourcePlayer.download(searching, loop=self.bot.loop, ctx=ctx, stream=True)
-                                if player.title in titles:
+                while True:
+                    if found_video:
+                        break
+                    try:
+                        if re.match(regex, song):
+                            player = await AudioSourcePlayer.download(song, loop=self.bot.loop, ctx=ctx, stream=False)
+                            queue.put(player)
+                            found_video = True
+                            break
+                        else:
+                            await ctx.send("Fetching Results...")
+                            players = []
+                            for index, searching in enumerate(self.get_songs(song)):
+                                if index % 2 != 0:
                                     continue
-                                players.append(player)
-                                titles.append(player.title)
-                            except youtube_dl.utils.DownloadError:
-                                continue
-                        embed = discord.Embed(title="Here are the song results that I came up with!", color=discord.Color.green())
-                        embed.add_field(name="Song Names (Select an option)", value="\n".join([f"**{number+1})** {player.title}" for number, player in enumerate(players)]))
-                        embed.set_footer(text="Select a song by sending the item number")
-                        try:
-                            await ctx.send(embed=embed)
-                        except discord.errors.HTTPException:
-                            await ctx.send(f"Sorry bit I did not find any video matches! please try again with new keywords")
-                        while True:
-                            msg = await self.bot.wait_for('message', check=lambda message: message.author.id == ctx.author.id, timeout=30.0)
+                                try:
+                                    player = await AudioSourcePlayer.download(searching, loop=self.bot.loop, ctx=ctx, stream=True)
+                                    if player.title in titles:
+                                        continue
+                                    players.append(player)
+                                    titles.append(player.title)
+                                except youtube_dl.utils.DownloadError:
+                                    continue
+                            embed = discord.Embed(title="Here are the song results that I came up with!", color=discord.Color.green())
+                            embed.add_field(name="Song Names (Select an option)", value="\n".join([f"**{number+1})** {player.title}" for number, player in enumerate(players)]))
+                            embed.set_footer(text="Select a song by sending the item number")
                             try:
-                                message_num = int(msg.content)
-                                if message_num in range(len(players)+1):
-                                    player = await AudioSourcePlayer.download(players[message_num-1].url, loop=self.bot.loop, ctx=ctx, stream=False)
-                                    queue.put(player)  # Adds a song to the servers queue system
-                                    found_video = True
-                                    break
-                                else:
-                                    await ctx.send("That is not a valid option!")
-                            except ValueError:
-                                await ctx.send("That is not a valid option!")
-                except youtube_dl.utils.DownloadError:
-                    found_video = False
+                                await ctx.send(embed=embed)
+                            except discord.errors.HTTPException:
+                                await ctx.send(f"Sorry bit I did not find any video matches! please try again with new keywords")
+                            while True:
+                                msg = await self.bot.wait_for('message', check=lambda message: message.author.id == ctx.author.id, timeout=30.0)
+                                try:
+                                    message_num = int(msg.content)
+                                    if message_num in range(len(players)+1):
+                                        player = await AudioSourcePlayer.download(players[message_num-1].url, loop=self.bot.loop, ctx=ctx, stream=False)
+                                        queue.put(player)  # Adds a song to the servers queue system
+                                        found_video = True
+                                        break
+                                    else:
+                                        await ctx.send(f"Please select a number, 1-{len(players)}")
+                                except ValueError:
+                                    await ctx.send(f"Please select a number, 1-{len(players)}")
+                    except youtube_dl.utils.DownloadError:
+                        continue
             if found_video:
                 return await self.play_next_song(ctx, queue_type)  # Starts to play queued songs
             return await ctx.send("Sorry but I cant find that video! Try some different key words")
@@ -585,7 +600,8 @@ class Music(commands.Cog):
 
     @commands.command(name='Queue', help="Displays the current song queue", usage="Queue")  # Very messy, needs to be cleaned up. Maybe with a pagination class
     async def queue(self, ctx):
-        """Displays the current song queue in a paginated embed
+        """
+        Displays the current song queue in a paginated embed
         :param ctx: Information on the context of where the command was called
         """
         queue = self.queues[ctx.guild.id]
@@ -805,6 +821,7 @@ class Music(commands.Cog):
             if not queues:
                 return await ctx.send(f"You have no saved queues! Save one with `{self.bot.prefix}Save`")
 
+            # If there is a saved queue, then we make a pagination embed so they can flip through all of the queues that the server has saved
             saved_queues = []
             current_page = 0
             left = "\N{BLACK LEFT-POINTING TRIANGLE}"
@@ -932,6 +949,9 @@ class Music(commands.Cog):
     # Bot Events
     @commands.Cog.listener()
     async def on_ready(self):
+        """
+        This is an additional on_ready event so that we can auto-join voice channels if any are set when the bot turns on
+        """
         await self.auto_join_channels()
 
 

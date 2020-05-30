@@ -8,6 +8,10 @@ from discord.ext import commands
 
 class CommandErrorHandler(commands.Cog):
     def __init__(self, bot):
+        """
+        Initializes the bot to be used for music
+        :param bot: discord.Bot
+        """
         self.bot = bot
     
     @commands.Cog.listener()
@@ -15,7 +19,7 @@ class CommandErrorHandler(commands.Cog):
         """
         Handles errors raised while executing a command
         :param ctx: Information on the context of where the command was called
-        :param error: Exception
+        :param error: The Exception that was raised
         """
 
         if hasattr(ctx.command, 'on_error'):

@@ -8,6 +8,7 @@ import discord
 from discord.ext import commands
 
 from bot.utils.servers import Server
+from bot.utils.webhooks import Donation
 
 initial_extensions = [
                     "bot.cogs.others.general",
@@ -17,7 +18,7 @@ initial_extensions = [
                     "bot.cogs.moderation.moderation",
 
                     "bot.cogs.music.music_moderation",
-                    "bot.cogs.music.music"
+                    "bot.cogs.music.music"  # This needs to be loaded as the last cog, we change the working environment here
                     ]
 
 
@@ -40,6 +41,9 @@ class LegacyMusic(commands.AutoShardedBot):
         self.load_commands()
 
     def load_commands(self):
+        """
+        Loads all of the command files (stored in the cogs folder) into the bot to be used
+        """
         for extension in initial_extensions:
             try:
                 self.load_extension(extension)  # Loads in the extension
@@ -49,6 +53,10 @@ class LegacyMusic(commands.AutoShardedBot):
         self.load_extension("jishaku")
 
     async def get_prefix(self, message):
+        """
+        Returns the server prefix stored in a database; this lets us have per-server prefixes
+        :param message: The message object that was sent
+        """
         self.prefix = Server(self, message.guild).prefix
         return commands.when_mentioned_or(self.prefix)(self, message)
 
@@ -67,6 +75,7 @@ class LegacyMusic(commands.AutoShardedBot):
             Setting `Watching ` status
             await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="a movie"))
         """
+        await self.wait_until_ready()
         playing = []
         streaming = []
         listening = [discord.Activity(type=discord.ActivityType.listening, name=f"music in {len(self.guilds):,} servers | BIG UPDATE SOON")]
@@ -89,13 +98,34 @@ class LegacyMusic(commands.AutoShardedBot):
         print("Bot ID: " + str(self.user.id))
         print("Discord Version: " + discord.__version__)
         print("------------------------------------")
-        await self.loop.run_until_complete(await self.status_changer())
+        await self.loop.create_task(await self.waitForWebhookEvents())
+        await self.loop.create_task(await self.status_changer())
 
     def run(self):
         """
         This is how we run the bot
         """
         super().run(self.config['Bot']['Token'], reconnect=True)
+
+    async def waitForWebhookEvents(self):
+        """
+        This will be waiting for any data to be sent to our database, when something is sent to the database it is
+            picked up here and lets us do other things with it like sending a thank-you message or giving
+            in-game rewards for supporting the bot
+        """
+        await self.wait_until_ready()
+        while True:
+            await asyncio.sleep(1)
+            dono_channel = self.get_channel(id=713564746284138526)
+            donation = Donation()
+            listener = donation.listen()
+            for dono in listener:
+                donation.get_info(txn_id=dono[0])
+                embed = discord.Embed(name="Donation Received!", color=discord.Color.blurple())
+                embed.add_field(name=f"{self.get_user(int(donation.buyer_id))} has donated {donation.price}!", value=f"Thank you for supporting Legacy!")
+                embed.set_footer(text="Thank you <3")
+                await dono_channel.send(embed=embed)
+                donation.remove_item(donation.txn_id)
 
 
 if __name__ == "__main__":

@@ -3,9 +3,6 @@ from discord.ext import commands
 
 
 class Help(commands.Cog):
-    """
-    Command file to be loaded into a discord bot
-    """
     def __init__(self, bot):
         """
         Initializes the bot

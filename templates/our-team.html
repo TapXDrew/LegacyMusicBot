@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+{% extends "navbar.html" %}
+<html>
+    {% block nav %}
+        {% if logged_in %}
+            <span class="navitem1" onclick="clicked()"><a href="/">{{ userData.full }}</a></span>
+        {% else %}
+            <span class="navitem1" onclick="clicked()"><a href="/oauth2_login">Login</a></span>
+        {% endif %}
+    {% endblock nav %}
+    {% block content %}
+        <div class="layout2">
+            <h1>OUR TEAM</h1>
+            <span>Just like in every project, there are some people that worked together on this project.</span>
+            <br>
+            <br>
+            <span><strong>Drew#8196:</strong> Main development</span>
+            <br>
+            <span><strong>SwedishLegend#0810:</strong> Web development</span>
+        </div>
+    {% endblock content %}
+</html>

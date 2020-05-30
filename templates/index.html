@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+{% extends "navbar.html" %}
+<html>
+    {% block nav %}
+        {% if logged_in %}
+            <span class="navitem1" onclick="clicked()"><a href="/">{{ userData.full }}</a></span>
+        {% else %}
+            <span class="navitem1" onclick="clicked()"><a href="/oauth2_login">Login</a></span>
+        {% endif %}
+    {% endblock nav %}
+    {% block content %}
+    <div class="layout1">
+        <h1 class="layout1header">Boost your server with #1 music bot</h1>
+        <br>
+        <p id="changetext" class="layout1p" >Listen to music everywhere</p>
+        <span class="link1"><a class="link1" href="">Add to discord</a></span>
+        <span class="link1"><a class="link2" onclick="scrollpage()">Why Legacy</a></span>
+        <div>
+            <img id="closelook" class="botbanner" src="https://dl.dropbox.com/s/8k1jjh7jvpju2vq/Untitled%20%2811%29.png">
+            <br>
+            <span class="bannertext">More than just a music bot, a bot with over 20 commands. <br>Advanced moderation system and awesome commands, this bot is the ultimate music bot.</span>
+        </div>
+        <span>
+            <img class="botbanner1" src="https://dl.dropbox.com/s/9sp0jg5zbuxbxcu/Untitled%20%281%29.png">
+            <br>
+            <span class="bannertext1">Join a voice chat and tell the bot to join it. <br> Now tell it to play anything :)</span>
+            <br>
+        </span>
+        <span>
+            <img class="botbanner2" src="https://dl.dropbox.com/s/dp8m9wt64bmpi5j/Untitled%20%2812%29.png">
+            <br>
+            <span class="bannertext2">Our awesome support team responds within 24 hours. <br> So make sure to hit them up as soon as you need them: <br>https://discord.gg/YSfeSR</span>
+        </span>
+    </div>
+    <p class="reserved">All right reserved <strong>Legacy®</strong> 2020</p>
+    {% endblock content %}
+    {% block scripts %}
+        var text = ["Best music bot out there", "Best design and moderation","Listen to music everywhere"];
+        var counter = 0;
+        var elem = document.getElementById("changetext");
+        var inst = setInterval(change, 5000);
+        elem.style.animation = "blink 5s infinite linear"
+            function change() {
+                elem.innerHTML = text[counter];
+                counter++;
+
+            if (counter >= text.length) {
+                counter = 0;
+            }
+        }
+        function scrollpage() {
+            document.getElementById('closelook').scrollIntoView();
+            window.setTimeout( function () { schrollpage(); }, 2000 );
+        }
+    {% endblock scripts %}
+</html>

@@ -10,6 +10,10 @@ from bot.utils.user import User
 
 class MusicModeration(commands.Cog):
     def __init__(self, bot):
+        """
+        Initializes the bot to be used for music
+        :param bot: discord.Bot
+        """
         self.user = None
         self.server = None
 
@@ -21,6 +25,10 @@ class MusicModeration(commands.Cog):
         self.VoteEmbed = int(bot.config["Embeds Colors"]["Vote Embed"], 16)
 
     def cog_check(self, ctx):
+        """
+        This is called before each command is used; this lets us re-set the config file for any updates, update the current user/server, and lets us lock the bot to only work in whitelisted channels
+        :param ctx: Information on the context of where the command was called
+        """
         self.config = json.load(open(self.bot.home_dir + '/bot/config/config.json'))  # Updates the config file to make sure we have the most relevant information
         self.user = User(bot=self.bot, ctx=ctx)
         self.server = Server(bot=self.bot, guild=ctx.guild)
@@ -33,8 +41,7 @@ class MusicModeration(commands.Cog):
                 return False
         return True
 
-    @commands.command(name='Override', help="Adds permission overrides to a specific user",
-                      usage="Override <permission> [user]", aliases=['AddPerm'])
+    @commands.command(name='Override', help="Adds permission overrides to a specific user", usage="Override <permission> [user]", aliases=['AddPerm'])
     @commands.has_permissions(manage_guild=True)
     async def override(self, ctx, perm, member: discord.Member = None):
         """
@@ -51,11 +58,9 @@ class MusicModeration(commands.Cog):
         if added:
             await ctx.send(f"Ok! {member.name} has the '{perm.lower().capitalize()}' override permission!")
         else:
-            await ctx.send(
-                f'Sorry, cant do that...Use `{self.bot.prefix}ValidPermissions` to view all valid permission names')
+            await ctx.send(f'Sorry, cant do that...Use `{self.bot.prefix}ValidPermissions` to view all valid permission names')
 
-    @commands.command(name="ValidPermissions", aliases=["VP"], help="Shows all valid permissions you can give a user",
-                      usage="ValidPermissions")
+    @commands.command(name="ValidPermissions", aliases=["VP"], help="Shows all valid permissions you can give a user", usage="ValidPermissions")
     async def validpermissions(self, ctx):
         """
         Lists all of the permissions that you can add to a user

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+{% extends "navbar.html" %}
+<html>
+    {% block nav %}
+        {% if logged_in %}
+            <span class="navitem1" onclick="clicked()"><a href="/">{{ userData.full }}</a></span>
+        {% else %}
+            <span class="navitem1" onclick="clicked()"><a href="/oauth2_login">Login</a></span>
+        {% endif %}
+    {% endblock nav %}
+    {% block content %}
+        <div class="layout2">
+            <h1>DONATE US</h1>
+            <span>Feeling like you want to support us? Well, you can support us by donating us some money on {PAYMENT METHOD}.</span>
+            <br>
+            <div class="box">
+                <h1>SMALL</h1>
+                <br>
+                <p>PRICE: {price}</p>
+                <a class="boxdo" href="">DONATE</a>
+            </div>
+            <div class="box">
+                <h1>MEDIUM</h1>
+                <br>
+                <p>PRICE: {price}</p>
+                <a class="boxdo" href="">DONATE</a>
+            </div>
+            <div class="box">
+                <h1>LARGE</h1>
+                <br>
+                <p>PRICE: {price}</p>
+                <a class="boxdo" href="">DONATE</a>
+            </div>
+        </div>
+    {% endblock content %}
+</html>

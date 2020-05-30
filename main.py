@@ -6,6 +6,8 @@ from flask import Flask, session, redirect, request, url_for, render_template
 from requests_oauthlib import OAuth2Session
 
 from bot.main import LegacyMusic
+from bot.utils.webhooks import Donation
+from bot.utils.webhooksLogs import Donation as DonationLog
 
 templates_in = os.getcwd()
 
@@ -124,6 +126,10 @@ def donate():
     txn_id is the transaction ID, this will be stored if the user is buying something such as premium for a specific server
     """
     if request.method == 'POST' and request.headers.get("Authorization") == Key:
+        donation = Donation()
+        donationLog = DonationLog()
+        donation.create_data(**request.json)
+        donationLog.create_data(**request.json)
         return '', 200
     else:
         return render_template('donate.html', logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False, userData=userData)
@@ -208,3 +214,40 @@ if __name__ == "__main__":
 
     website.start()
     legacy.run()
+
+"""
+.
+├── LICENSE
+├── README.md
+├── __init__.py
+├── bot
+│   ├── audio_cache
+│   │   └── Audio is downloaded here then deleted after
+│   ├── cogs
+│   │   ├── moderation
+│   │   │   └── moderation.py
+│   │   ├── music
+│   │   │   ├── __pycache__
+│   │   │   ├── music.py
+│   │   │   └── music_moderation.py
+│   │   └── others
+│   │       ├── error.py
+│   │       ├── general.py
+│   │       └── help.py
+│   ├── config
+│   │   ├── Rename example_config to config
+│   │   ├── _autoplaylist.txt
+│   │   ├── config.json
+│   │   └── example_config.json
+│   ├── databases
+│   │   └── servers.db
+│   ├── main.py
+│   └── utils
+│       ├── moderation.py
+│       ├── permissions.json
+│       ├── queues.py
+│       ├── servers.py
+│       ├── user.py
+│       └── userInfo.py
+└── main.py
+"""
