@@ -212,7 +212,7 @@ def login():
 if __name__ == "__main__":
     website = threading.Thread(target=runApp)
 
-    website.start()
+    # website.start()
     legacy.run()
 
 """

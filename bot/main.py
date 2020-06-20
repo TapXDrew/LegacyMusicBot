@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from bot.utils.servers import Server
 from bot.utils.webhooks import Donation
+import bot.utils.create_captcha as captcha
 
 initial_extensions = [
                     "bot.cogs.others.general",
@@ -20,6 +21,23 @@ initial_extensions = [
                     "bot.cogs.music.music_moderation",
                     "bot.cogs.music.music"  # This needs to be loaded as the last cog, we change the working environment here
                     ]
+
+
+def generate_captcha():
+    """
+    Generates a captcha image for the user to solve
+    :return: Dict
+    """
+    captcha_text = captcha.create_random_captcha_text()
+    captcha.create_image_captcha(captcha_text)
+    file = discord.File("captcha.png", filename="captcha.png")
+
+    return_dict = {
+        "verif_code": captcha_text.lower(),
+        "file": file
+    }
+
+    return return_dict
 
 
 class LegacyMusic(commands.AutoShardedBot):
@@ -57,8 +75,49 @@ class LegacyMusic(commands.AutoShardedBot):
         Returns the server prefix stored in a database; this lets us have per-server prefixes
         :param message: The message object that was sent
         """
-        self.prefix = Server(self, message.guild).prefix
+        if not message.guild:
+            self.prefix = "!"
+        else:
+            self.prefix = Server(self, message.guild).prefix
         return commands.when_mentioned_or(self.prefix)(self, message)
+
+    async def on_message(self, message):
+        await self.process_commands(message)
+    """async def on_member_join(self, member):
+        server = Server(self, member.guild)
+        if not server.vs:
+            return
+
+        generated_captcha = generate_captcha()
+        file = generated_captcha['file']
+        verif_code = generated_captcha['verif_code']
+
+        embed = discord.Embed(title="Verify you are human", color=discord.Color.orange())
+        embed.set_image(url="attachment://captcha.png")
+        await member.send(file=file, embed=embed)
+
+        while True:
+            try:
+                provided_code = await self.wait_for('message', check=lambda message: message.author.id == member.id, timeout=30.0)
+                if provided_code.content == verif_code:
+                    role = discord.utils.get(member.guild.roles, id=720177199365357659)
+                    if role:
+                        await member.add_roles(role, reason="Verification Passed")
+                        return await member.send(f"Okay! You now have the role {role.name}!")
+                    else:
+                        return await member.send("Sorry, I could not find the provided role to apply to you. Please contact a server administrator")
+                else:
+                    generated_captcha = generate_captcha()
+                    file = generated_captcha['file']
+                    verif_code = generated_captcha['verif_code']
+
+                    embed = discord.Embed(title="Invalid Verification Code! Try Again!", color=discord.Color.red())
+                    embed.set_image(url="attachment://captcha.png")
+                    await member.send(file=file, embed=embed)
+
+                    continue
+            except asyncio.TimeoutError:
+                continue"""
 
     # noinspection PyTypeChecker
     async def status_changer(self):
@@ -98,8 +157,8 @@ class LegacyMusic(commands.AutoShardedBot):
         print("Bot ID: " + str(self.user.id))
         print("Discord Version: " + discord.__version__)
         print("------------------------------------")
-        await self.loop.create_task(await self.waitForWebhookEvents())
-        await self.loop.create_task(await self.status_changer())
+        # await self.loop.run_until_complete(await self.waitForWebhookEvents())
+        # await self.loop.run_until_complete(await self.status_changer())
 
     def run(self):
         """

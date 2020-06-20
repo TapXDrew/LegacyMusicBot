@@ -29,7 +29,7 @@ class Server:
         self._get_server_info()
 
     def _create_table(self):
-        query = f"""CREATE TABLE IF NOT EXISTS {TABLE} (id BIGINT, auto_connect BIGINT, locked TEXT, prefix TEXT, AutoPlaylist BIGINT, PermissionSystem BIGINT)"""
+        query = f"""CREATE TABLE IF NOT EXISTS {TABLE} (id BIGINT, auto_connect BIGINT, locked TEXT, prefix TEXT, AutoPlaylist BIGINT, PermissionSystem BIGINT, VerificationSystem BIGINT)"""
         self.cursor.execute(query)
         self.conn.commit()
 
@@ -45,14 +45,15 @@ class Server:
             self.prefix = info[0][3]
             self.ap = info[0][4]
             self.ps = info[0][5]
+            self.vs = info[0][6]
         else:
             self._create_server()
             self._get_server_info()
 
     def _create_server(self):
         try:
-            query = f"""INSERT INTO {TABLE} VALUES (?, ?, ?, ?, ?, ?)"""
-            self.cursor.execute(query, (self.guild.id, None, '', self.config['Bot']['Prefix'], 1, 1))
+            query = f"""INSERT INTO {TABLE} VALUES (?, ?, ?, ?, ?, ?, ?)"""
+            self.cursor.execute(query, (self.guild.id, None, '', self.config['Bot']['Prefix'], 1, 1, 1))
             self.conn.commit()
         except sqlite3.Error:
             pass
