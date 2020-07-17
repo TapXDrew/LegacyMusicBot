@@ -1,253 +1,108 @@
+import asyncio
+import json
 import os
+import random
+import traceback
 import threading
-from waitress import serve
 
-from flask import Flask, session, redirect, request, url_for, render_template
-from requests_oauthlib import OAuth2Session
+import discord
+from discord.ext import commands
 
-from bot.main import LegacyMusic
-from bot.utils.webhooks import Donation
-from bot.utils.webhooksLogs import Donation as DonationLog
+from utils.servers import Server
+from webhooks.donation import runDonate
 
-templates_in = os.getcwd()
+initial_extensions = [
+                    "cogs.others.general",
+                    "cogs.others.help",
+                    "cogs.others.error",
 
+                    "cogs.moderation.moderation",
 
-class UserData:
-    def __init__(self, user_data, guild_data):
-        self.id = user_data.get("id")
-
-        self.username = user_data.get("username")
-        self.discriminator = user_data.get("discriminator")
-        self.full = f"{self.username}#{self.discriminator}"
-
-        self.avatar = user_data.get("avatar")
-
-        self.public_flags = user_data.get("public_flags")
-        self.flags = user_data.get("flags")
-
-        self.email = user_data.get("email")
-        self.verified = user_data.get("verified")
-
-        self.locale = user_data.get("locale")
-
-        self.mfa_enabled = user_data.get("mfa_enabled")
-
-        self.guilds = guild_data
-
-    def update_data(self, user_data, guild_data):
-        self.id = user_data.get("id")
-
-        self.username = user_data.get("username")
-        self.discriminator = user_data.get("discriminator")
-        self.full = f"{self.username}#{self.discriminator}"
-
-        self.avatar = user_data.get("avatar")
-
-        self.public_flags = user_data.get("public_flags")
-        self.flags = user_data.get("flags")
-
-        self.email = user_data.get("email")
-        self.verified = user_data.get("verified")
-
-        self.locale = user_data.get("locale")
-
-        self.mfa_enabled = user_data.get("mfa_enabled")
-
-        self.guilds = guild_data
+                    "cogs.music.music_moderation",
+                    "cogs.music.music"
+                    ]
 
 
-userData = UserData({}, {})
-legacy = LegacyMusic()
-
-OAUTH2_CLIENT_ID = '698211698624167997'
-OAUTH2_CLIENT_SECRET = 'VYJygI1LK07CHcQUraa5gak2JO0qR5VN'
-OAUTH2_REDIRECT_URI = 'http://127.0.0.1:5000/login'
-Key = 'x%4htdsyp)8&pCew:L*A54[tzHu&Dn4_'
-
-API_BASE_URL = os.environ.get('API_BASE_URL', 'https://discordapp.com/api')
-AUTHORIZATION_BASE_URL = API_BASE_URL + '/oauth2/authorize'
-TOKEN_URL = API_BASE_URL + '/oauth2/token'
-
-app = Flask(__name__, template_folder=f'{templates_in}/templates')
-app.debug = True
-app.config['SECRET_KEY'] = OAUTH2_CLIENT_SECRET
-
-
-def runApp():
-    serve(app, host="127.0.0.1", port=5000)
-
-
-if 'http://' in OAUTH2_REDIRECT_URI:
-    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = 'true'
-
-
-def token_updater(token):
-    session['oauth2_token'] = token
-
-
-def make_session(token=None, state=None, scope=None):
-    return OAuth2Session(
-        client_id=OAUTH2_CLIENT_ID,
-        token=token,
-        state=state,
-        scope=scope,
-        redirect_uri=OAUTH2_REDIRECT_URI,
-        auto_refresh_kwargs={
-            'client_id': OAUTH2_CLIENT_ID,
-            'client_secret': OAUTH2_CLIENT_SECRET,
-        },
-        auto_refresh_url=TOKEN_URL,
-        token_updater=token_updater)
-
-
-@app.route('/')
-def home():
-    if 'oauth2_token' in session:
-        discord = make_session(token=session.get('oauth2_token'))
-        user = discord.get(API_BASE_URL + '/users/@me').json()
-        guilds = discord.get(API_BASE_URL + '/users/@me/guilds').json()
-        connections = discord.get(API_BASE_URL + '/users/@me/connections').json()
-
-        userData.update_data(user, guilds)
-    return render_template('index.html',
-                           logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False,
-                           userData=userData)
-
-
-@app.route('/donate/', methods=['POST'])
-def donate():
+class LegacyMusic(commands.AutoShardedBot):
     """
-    This webhook catches all incoming POST requests, this will be reserved for donations. If the key is compromised then donations can be faked
-    An example response would be:
-    {'txn_id': '32972532BD432764B', 'buyer_email': 'buyer@email.com', 'price': '4.99', 'currency': 'USD',
-    'buyer_id':'349714792719843329', 'role_id': '479793572267425842', 'guild_id': '404394509917487105',
-    'recurring': False, 'status': 'completed'}
-
-    txn_id is the transaction ID, this will be stored if the user is buying something such as premium for a specific server
+    This is our bot, we need to create an instance of the bot and run it for it to be online
     """
-    if request.method == 'POST' and request.headers.get("Authorization") == Key:
-        donation = Donation()
-        donationLog = DonationLog()
-        donation.create_data(**request.json)
-        donationLog.create_data(**request.json)
-        return '', 200
-    else:
-        return render_template('donate.html', logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False, userData=userData)
+    def __init__(self):
+        """
+        The __init__ method is called whenever an instance of the class is made, it initializes the class
+        """
+        self.config = json.load(open(os.getcwd() + '/config/config.json'))
 
+        super().__init__(command_prefix=commands.when_mentioned_or(self.get_prefix), case_insensitive=True)  # We are inheriting from the class commands.AutoShardedBot so we also inherit from its __init__ using super()
 
-@app.route('/dashboard')
-def dashboard():
-    if 'oauth2_token' not in session or userData.full == "None#None":
-        return redirect(url_for(".oauth2_login"))
+        self.remove_command('help')  # Remove the help command so we can add our own
+        self.home_dir = os.getcwd()
+        self.prefix = None
 
-    in_guilds = []
-    not_in_guilds = []
-    for guild in userData.guilds:
-        for botGuild in legacy.guilds:
-            if guild['name'] == botGuild.name:
-                in_guilds.append(guild)
-            else:
-                not_in_guilds.append(guild)
+        self.load_commands()
 
-    return render_template('dashboard.html',
-                           logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False,
-                           userData=userData, legacy=legacy, in_guilds=in_guilds, not_in_guilds=not_in_guilds, baseUrl=url_for(".dashboard"))
+    def load_commands(self):
+        for extension in initial_extensions:
+            try:
+                self.load_extension(extension)  # Loads in the extension
+            except Exception:
+                print(f"Failed to load extension {extension}.")  # If it fails, we print the traceback error
+                traceback.print_exc()
+        self.load_extension("jishaku")
 
+    async def get_prefix(self, message):
+        self.prefix = Server(self, message.guild).prefix
+        return commands.when_mentioned_or(self.prefix)(self, message)
 
-@app.route('/dashboard/<guild_id>')
-def dashboard_view(guild_id: str = None):
-    return redirect(url_for(".dashboard")+'/'+guild_id+"/music")
+    # noinspection PyTypeChecker
+    async def status_changer(self):
+        """
+            Setting `Playing ` status
+            await bot.change_presence(activity=discord.Game(name="a game"))
 
+            Setting `Streaming ` status
+            await bot.change_presence(activity=discord.Streaming(name="My Stream", url=my_twitch_url))
 
-@app.route('/dashboard/<guild_id>/music')
-def dashboard_music_view(guild_id: str = None):
-    gid = None
-    for data in userData.guilds:
-        if data["id"] == guild_id:
-            gid = int(data["id"])
-    if gid:
-        return render_template('dashboardMusic.html',
-                               logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False,
-                               userData=userData, legacy=legacy, guild=legacy.get_guild(gid))
-    else:
-        return redirect(url_for(".dashboard"))
+            Setting `Listening ` status
+            await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="a song"))
 
+            Setting `Watching ` status
+            await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="a movie"))
+        """
+        playing = []
+        streaming = []
+        listening = [discord.Activity(type=discord.ActivityType.listening, name=f"music in {len(self.guilds):,} servers | BIG UPDATE SOON")]
+        watching = []
+        statuses = playing + streaming + listening + watching
+        while True:
+            if not self.is_ready():
+                continue
+            if self.is_closed():
+                return
+            await self.change_presence(activity=random.choice(statuses))
+            await asyncio.sleep(self.config['Bot']['StatusTimer'])
 
-@app.route('/our-team')
-def team():
-    return render_template('our-team.html',
-                           logged_in=True if 'oauth2_token' in session and userData.full != "None#None" else False,
-                           userData=userData)
+    async def on_ready(self):
+        """
+        Triggered whenever the bot becomes ready for use
+        """
+        print("------------------------------------")
+        print("Bot Name: " + self.user.name)
+        print("Bot ID: " + str(self.user.id))
+        print("Discord Version: " + discord.__version__)
+        print("------------------------------------")
+        await self.loop.run_until_complete(await self.status_changer())
 
-
-@app.route('/oauth2_login')
-def oauth2_login():
-    scope = request.args.get(
-        'scope',
-        'identify email connections guilds guilds.join')
-    discord = make_session(scope=scope.split(' '))
-    authorization_url, state = discord.authorization_url(AUTHORIZATION_BASE_URL)
-    session['oauth2_state'] = state
-    return redirect(authorization_url)
-
-
-@app.route('/login')
-def login():
-    try:
-        if request.values.get('error'):
-            return redirect(url_for(".oauth2_login"))
-
-        discord = make_session(state=session.get('oauth2_state'))
-        token = discord.fetch_token(
-            TOKEN_URL,
-            client_secret=OAUTH2_CLIENT_SECRET,
-            authorization_response=request.url)
-        session['oauth2_token'] = token
-
-        return redirect(url_for('.home'))
-    except Exception:
-        return redirect(url_for(".oauth2_login"))
+    def run(self):
+        """
+        This is how we run the bot
+        """
+        super().run(self.config['Bot']['Token'], reconnect=True)
 
 
 if __name__ == "__main__":
-    website = threading.Thread(target=runApp)
+    donateHook = threading.Thread(target=runDonate)
+    donateHook.start()
 
-    # website.start()
-    legacy.run()
-
-"""
-.
-├── LICENSE
-├── README.md
-├── __init__.py
-├── bot
-│   ├── audio_cache
-│   │   └── Audio is downloaded here then deleted after
-│   ├── cogs
-│   │   ├── moderation
-│   │   │   └── moderation.py
-│   │   ├── music
-│   │   │   ├── __pycache__
-│   │   │   ├── music.py
-│   │   │   └── music_moderation.py
-│   │   └── others
-│   │       ├── error.py
-│   │       ├── general.py
-│   │       └── help.py
-│   ├── config
-│   │   ├── Rename example_config to config
-│   │   ├── _autoplaylist.txt
-│   │   ├── config.json
-│   │   └── example_config.json
-│   ├── databases
-│   │   └── servers.db
-│   ├── main.py
-│   └── utils
-│       ├── moderation.py
-│       ├── permissions.json
-│       ├── queues.py
-│       ├── servers.py
-│       ├── user.py
-│       └── userInfo.py
-└── main.py
-"""
+    Legacy = LegacyMusic()
+    Legacy.run()
